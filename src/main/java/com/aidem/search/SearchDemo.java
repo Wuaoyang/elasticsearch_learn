@@ -3,22 +3,30 @@ package com.aidem.search;
 import com.aidem.search.entity.SmsLogs;
 import com.aidem.utils.ESClient;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 查询专用Demo
@@ -29,28 +37,31 @@ import java.util.List;
 public class SearchDemo {
 
     //  按照阿里规范 静态常量最好是大写开头 因借鉴了部分博客的代码 懒得改哈 友情提示
-
     private RestHighLevelClient client = ESClient.getClient();
-    private Gson gson = new Gson();
+    private Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
     private String index = "sms-logs-index";
     private String type = "sms-logs-type";
 
+    /**
+     * 创建索引
+     */
     @Test
     public void createIndex() throws Exception {
         // 1.准备关于索引的setting
         Settings.Builder settings = Settings.builder().put("number_of_shards", 3).put("number_of_replicas", 1);
-
         // 2.准备关于索引的mapping
         XContentBuilder mappings = JsonXContent.contentBuilder().startObject().startObject("properties").startObject("corpName").field("type", "keyword").endObject().startObject("createDate").field("type", "date").field("format", "yyyy-MM-dd").endObject().startObject("fee").field("type", "long").endObject().startObject("ipAddr").field("type", "ip").endObject().startObject("longCode").field("type", "keyword").endObject().startObject("mobile").field("type", "keyword").endObject().startObject("operatorId").field("type", "integer").endObject().startObject("province").field("type", "keyword").endObject().startObject("replyTotal").field("type", "integer").endObject().startObject("sendDate").field("type", "date").field("format", "yyyy-MM-dd").endObject().startObject("smsContent").field("type", "text").field("analyzer", "ik_max_word").endObject().startObject("state").field("type", "integer").endObject().endObject().endObject();
         // 3.将settings和mappings 封装到到一个Request对象中
         CreateIndexRequest request = new CreateIndexRequest(index).settings(settings).mapping(type, mappings);
         // 4.使用client 去连接ES
         CreateIndexResponse response = client.indices().create(request, RequestOptions.DEFAULT);
-
         System.out.println("response:" + response.toString());
 
     }
 
+    /**
+     * 批量插入测试数据
+     */
     @Test
     public void bulkCreateDoc() throws Exception {
         // 1.准备多个json 对象
@@ -68,9 +79,8 @@ public class SearchDemo {
         provinces.add("重庆");
         provinces.add("上海");
         provinces.add("晋城");
-
         BulkRequest bulkRequest = new BulkRequest();
-        for (int i = 1; i < 2; i++) {
+        for (int i = 1; i < 16; i++) {
             Thread.sleep(200);
             SmsLogs s1 = new SmsLogs();
             s1.setId(i);
@@ -96,6 +106,29 @@ public class SearchDemo {
 
         // 4.输出结果
         System.out.println(responses.getItems());
-    }
+	}
+
+    /**
+     * 使用 term 查询
+     */
+	@Test
+	public void termSearchTest() throws IOException {
+		// 1.创建request对象
+		SearchRequest request = new SearchRequest(index);
+		request.types(type);
+		// 2.创建查询条件
+		SearchSourceBuilder builder = new SearchSourceBuilder();
+		builder.from(0);
+		builder.size(5);
+		builder.query(QueryBuilders.termQuery("province", "北京"));
+		request.source(builder);
+		// 3.执行查询
+		SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+		// 4.输出查询结果
+		for (SearchHit hit : response.getHits().getHits()) {
+			Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+			System.out.println(sourceAsMap);
+		}
+	}
 
 }
