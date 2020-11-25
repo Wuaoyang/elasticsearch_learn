@@ -119,7 +119,7 @@ public class Demo {
     @Test
     public void addDocument() throws IOException {
         // 1. 构造文档内容
-        AidemJavaIndex entity = new AidemJavaIndex(1,23,new Date(),"吴傲阳(aidem)");
+        AidemJavaIndex entity = new AidemJavaIndex(22,23,new Date(),"吴傲阳(aidem)");
         // 2.  构造request
         IndexRequest request = new IndexRequest(INDEX,TYPE,entity.getId().toString());
         request.source(gson.toJson(entity), XContentType.JSON);
