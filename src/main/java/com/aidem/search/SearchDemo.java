@@ -17,6 +17,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -100,35 +101,133 @@ public class SearchDemo {
             bulkRequest.add(new IndexRequest(index, type, s1.getId().toString()).source(json1, XContentType.JSON));
             System.out.println("数据" + i + s1.toString());
         }
-
         // 3.client 执行
         BulkResponse responses = client.bulk(bulkRequest, RequestOptions.DEFAULT);
-
         // 4.输出结果
         System.out.println(responses.getItems());
-	}
+    }
 
     /**
      * 使用 term 查询
      */
-	@Test
-	public void termSearchTest() throws IOException {
-		// 1.创建request对象
-		SearchRequest request = new SearchRequest(index);
-		request.types(type);
-		// 2.创建查询条件
-		SearchSourceBuilder builder = new SearchSourceBuilder();
-		builder.from(0);
-		builder.size(5);
-		builder.query(QueryBuilders.termQuery("province", "北京"));
-		request.source(builder);
-		// 3.执行查询
-		SearchResponse response = client.search(request, RequestOptions.DEFAULT);
-		// 4.输出查询结果
-		for (SearchHit hit : response.getHits().getHits()) {
-			Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-			System.out.println(sourceAsMap);
-		}
-	}
+    @Test
+    public void termSearchTest() throws IOException {
+        // 1.创建request对象
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        // 2.创建查询条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        builder.from(0);
+        builder.size(5);
+        builder.query(QueryBuilders.termQuery("province", "北京"));
+        request.source(builder);
+        // 3.执行查询
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 4.输出查询结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+            System.out.println(sourceAsMap);
+        }
+    }
+
+    /**
+     * 使用 terms 查询
+     */
+    @Test
+    public void termsSearchTest() throws IOException {
+        // 1.创建request对象
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        // 2.创建查询条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        builder.from(0);
+        builder.size(5);
+        // 和term的例子仅仅是改成了termsQuery 同时第二个参数传入了String数组
+        // 跟进去很容易看到，其实termQuery 和 termsQuery逻辑都一样，实际都是转成数组去处理。
+        builder.query(QueryBuilders.termsQuery("province", "北京", "晋城"));
+        request.source(builder);
+        // 3.执行查询
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 4.输出查询结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+            System.out.println(sourceAsMap);
+        }
+    }
+
+    /**
+     * 使用 matchAll 查询
+     */
+    @Test
+    public void matchAllSearch() throws IOException {
+        // 1.创建request对象
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        //  2.创建查询条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        builder.query(QueryBuilders.matchAllQuery());
+        //  ES 默认只查询10条数据
+        builder.size(20);
+        request.source(builder);
+        //  3.执行查询
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 4.输出查询结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            System.out.println(hit.getSourceAsMap());
+        }
+        System.out.println(response.getHits().getHits().length);
+    }
+
+    /**
+     * 使用 match  查询 单个字段（会发现，他已经会基于分词器进行对“伟大战士”进行分词搜索了）
+     */
+    @Test
+    public void matchSearch() throws IOException {
+        // 1.创建request对象
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        //  2.创建查询条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        //--------------------------------------------------------------
+        builder.query(QueryBuilders.matchQuery("smsContent","伟大战士"));
+        //--------------------------------------------------------------
+        builder.size(20);
+        request.source(builder);
+        //  3.执行查询
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 4.输出查询结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            System.out.println(hit.getSourceAsMap());
+        }
+        System.out.println(response.getHits().getHits().length);
+    }
+
+    /**
+     * 布尔match
+     * 实现类似 and / or 的操作
+     */
+    @Test
+    public void booleanMatchSearch() throws IOException {
+        // 1.创建request对象
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        //  2.创建查询条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        //--------------------------------------------------------------
+        // and
+        builder.query(QueryBuilders.matchQuery("smsContent","战士 团队").operator(Operator.AND));
+        // or
+//        builder.query(QueryBuilders.matchQuery("smsContent","战士 团队").operator(Operator.OR));
+        //--------------------------------------------------------------
+        builder.size(20);
+        request.source(builder);
+        //  3.执行查询
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 4.输出查询结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            System.out.println(hit.getSourceAsMap());
+        }
+        System.out.println(response.getHits().getHits().length);
+    }
 
 }
