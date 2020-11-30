@@ -33,12 +33,12 @@ import java.util.Date;
  * @author aosun_wu
  * @date 2020-11-21 14:48
  */
-public class Demo {
+public class ElasticSearchFirstDemo {
 
     /**
      * es chient
      */
-    private RestHighLevelClient client =  ESClient.getClient();
+    private RestHighLevelClient client = ESClient.getClient();
 
     /**
      * gson
@@ -48,11 +48,11 @@ public class Demo {
     /**
      * 索引名称
      */
-	private static final String INDEX = "aidem_java_index";
+    private static final String INDEX = "aidem_java_index";
     /**
      * 文档类型
      */
-	private static final String TYPE = "_doc";
+    private static final String TYPE = "_doc";
 
     // ============================================ 索引篇 ============================================
 
@@ -66,20 +66,20 @@ public class Demo {
         // 2. 构造创建settings 和 mappings
         Settings.Builder settings = Settings.builder().put("number_of_shards", 3).put("number_of_replicas", 1);
         XContentBuilder mappings = JsonXContent.contentBuilder()
-        .startObject()
-        .startObject("properties")
-        .startObject("name")
-        .field("type", "text")
-        .endObject()
-        .startObject("age")
-        .field("type", "integer")
-        .endObject()
-        .startObject("birthday")
-        .field("type", "date")
-        .field("format", "yyyy-MM-dd")
-        .endObject()
-        .endObject()
-        .endObject();
+                .startObject()
+                .startObject("properties")
+                .startObject("name")
+                .field("type", "text")
+                .endObject()
+                .startObject("age")
+                .field("type", "integer")
+                .endObject()
+                .startObject("birthday")
+                .field("type", "date")
+                .field("format", "yyyy-MM-dd")
+                .endObject()
+                .endObject()
+                .endObject();
         // 3. 设置属性
         request.index(INDEX).settings(settings).mapping(TYPE, mappings);
         // 4. 使用client，操作es
@@ -119,9 +119,9 @@ public class Demo {
     @Test
     public void addDocument() throws IOException {
         // 1. 构造文档内容
-        AidemJavaIndex entity = new AidemJavaIndex(22,23,new Date(),"吴傲阳(aidem)");
+        AidemJavaIndex entity = new AidemJavaIndex(22, 23, new Date(), "吴傲阳(aidem)");
         // 2.  构造request
-        IndexRequest request = new IndexRequest(INDEX,TYPE,entity.getId().toString());
+        IndexRequest request = new IndexRequest(INDEX, TYPE, entity.getId().toString());
         request.source(gson.toJson(entity), XContentType.JSON);
         // 3. 使用client操作
         IndexResponse response = client.index(request, RequestOptions.DEFAULT);
@@ -138,7 +138,7 @@ public class Demo {
         entity.setId(1);
         entity.setName("修改！");
         // 2.  构造request
-		UpdateRequest request = new UpdateRequest(INDEX, TYPE, entity.getId().toString());
+        UpdateRequest request = new UpdateRequest(INDEX, TYPE, entity.getId().toString());
         request.doc(gson.toJson(entity), XContentType.JSON);
         // 3. 使用client操作
         UpdateResponse response = client.update(request, RequestOptions.DEFAULT);
@@ -151,7 +151,7 @@ public class Demo {
     @Test
     public void deleteDocument() throws IOException {
         // 1.  构造request
-		DeleteRequest request = new DeleteRequest(INDEX, TYPE, "1");
+        DeleteRequest request = new DeleteRequest(INDEX, TYPE, "1");
         // 2. 使用client操作
         DeleteResponse response = client.delete(request, RequestOptions.DEFAULT);
         System.out.println(response.getResult().toString());
@@ -163,17 +163,17 @@ public class Demo {
     @Test
     public void bulkInsertDoc() throws IOException {
         // 1.  准备多个json对象
-        AidemJavaIndex a1  = new AidemJavaIndex(100,10,new Date(),"100");
-        AidemJavaIndex a2  = new AidemJavaIndex(101,11,new Date(),"101");
-        AidemJavaIndex a3  = new AidemJavaIndex(102,12,new Date(),"102");
+        AidemJavaIndex a1 = new AidemJavaIndex(100, 10, new Date(), "100");
+        AidemJavaIndex a2 = new AidemJavaIndex(101, 11, new Date(), "101");
+        AidemJavaIndex a3 = new AidemJavaIndex(102, 12, new Date(), "102");
         String json1 = gson.toJson(a1);
         String json2 = gson.toJson(a2);
         String json3 = gson.toJson(a3);
         // 2. 构造bulk request
         BulkRequest request = new BulkRequest();
-        request.add(new IndexRequest(INDEX,TYPE,a1.getId().toString()).source(json1,XContentType.JSON))
-                .add(new IndexRequest(INDEX,TYPE,a2.getId().toString()).source(json2,XContentType.JSON))
-                .add(new IndexRequest(INDEX,TYPE,a3.getId().toString()).source(json3,XContentType.JSON));
+        request.add(new IndexRequest(INDEX, TYPE, a1.getId().toString()).source(json1, XContentType.JSON))
+                .add(new IndexRequest(INDEX, TYPE, a2.getId().toString()).source(json2, XContentType.JSON))
+                .add(new IndexRequest(INDEX, TYPE, a3.getId().toString()).source(json3, XContentType.JSON));
         // 3. 使用client操作
         BulkResponse response = client.bulk(request, RequestOptions.DEFAULT);
         System.out.println(response.getItems().toString());
@@ -186,18 +186,13 @@ public class Demo {
     public void bulkDeleteDoc() throws IOException {
         // 1. 构造bulk request
         BulkRequest request = new BulkRequest();
-        request.add(new DeleteRequest(INDEX,TYPE,"101"))
-                .add(new DeleteRequest(INDEX,TYPE,"102"))
-                .add(new DeleteRequest(INDEX,TYPE,"103"));
+        request.add(new DeleteRequest(INDEX, TYPE, "101"))
+                .add(new DeleteRequest(INDEX, TYPE, "102"))
+                .add(new DeleteRequest(INDEX, TYPE, "103"));
         // 2. 使用client操作
         BulkResponse response = client.bulk(request, RequestOptions.DEFAULT);
         System.out.println(response.getItems().toString());
     }
-
-
-
-
-
 
 
 }

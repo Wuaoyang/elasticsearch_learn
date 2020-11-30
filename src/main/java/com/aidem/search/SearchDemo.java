@@ -8,6 +8,8 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -30,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 查询专用Demo
+ * 各种查询专用Demo
  *
  * @author aosun_wu
  * @date 2020-11-24 22:45
@@ -189,7 +191,7 @@ public class SearchDemo {
         //  2.创建查询条件
         SearchSourceBuilder builder = new SearchSourceBuilder();
         //--------------------------------------------------------------
-        builder.query(QueryBuilders.matchQuery("smsContent","伟大战士"));
+        builder.query(QueryBuilders.matchQuery("smsContent", "伟大战士"));
         //--------------------------------------------------------------
         builder.size(20);
         request.source(builder);
@@ -215,7 +217,7 @@ public class SearchDemo {
         SearchSourceBuilder builder = new SearchSourceBuilder();
         //--------------------------------------------------------------
         // and
-        builder.query(QueryBuilders.matchQuery("smsContent","战士 团队").operator(Operator.AND));
+        builder.query(QueryBuilders.matchQuery("smsContent", "战士 团队").operator(Operator.AND));
         // or
 //        builder.query(QueryBuilders.matchQuery("smsContent","战士 团队").operator(Operator.OR));
         //--------------------------------------------------------------
@@ -229,5 +231,179 @@ public class SearchDemo {
         }
         System.out.println(response.getHits().getHits().length);
     }
+
+    /**
+     * multi_match
+     * 实现多字段match的操作
+     */
+    @Test
+    public void multiMatchSearch() throws IOException {
+        // 1.创建request对象
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        //  2.创建查询条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        //--------------------------------------------------------------
+        builder.query(QueryBuilders.multiMatchQuery("团队 管理", "smsContent", "province").operator(Operator.AND));
+        //--------------------------------------------------------------
+        builder.size(20);
+        request.source(builder);
+        //  3.执行查询
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 4.输出查询结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            System.out.println(hit.getSourceAsMap());
+        }
+        System.out.println(response.getHits().getHits().length);
+    }
+
+    /**
+     * 根据id查询
+     */
+    @Test
+    public void idSearch() throws IOException {
+        // 1. 构造request
+        GetRequest getRequest = new GetRequest(index, type, "1");
+        // 2. 执行查询
+        GetResponse response = client.get(getRequest, RequestOptions.DEFAULT);
+        // 3. 返回结果
+        System.out.println(response.getSourceAsMap());
+    }
+
+    /**
+     * 根据多个id查询
+     */
+    @Test
+    public void idsSearch() throws IOException {
+        // 1. 构造request
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        // 2. 构造查询体（相当于_search{}，花括号里的内容）
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        builder.from(0);
+        builder.size(20);
+        builder.query(QueryBuilders.idsQuery().addIds("1", "2", "3"));
+        request.source(builder);
+        // 3. 执行查询
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 4. 返回结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            System.out.println(hit.getSourceAsMap());
+        }
+    }
+
+    /**
+     * 根据prefix查询
+     */
+    @Test
+    public void prefixSearch() throws IOException {
+        //  创建request对象
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        //  指定查询条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        //--------------------------------------------------
+        builder.query(QueryBuilders.prefixQuery("corpName", "阿"));
+        //------------------------------------------------------
+        request.source(builder);
+        // 执行
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 输出结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            System.out.println(hit.getSourceAsMap());
+        }
+    }
+
+    /**
+     * 根据fuzzy查询
+     */
+    @Test
+    public void fuzzySearch() throws IOException {
+        //  创建request对象
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        //  指定查询条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        //--------------------------------------------------
+        builder.query(QueryBuilders.fuzzyQuery("corpName", "腾讯客堂"));
+        //------------------------------------------------------
+        request.source(builder);
+        // 执行
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 输出结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            System.out.println(hit.getSourceAsMap());
+        }
+    }
+
+    /**
+     * 根据wildcard查询
+     */
+    @Test
+    public void wildcardSearch() throws IOException {
+        //  创建request对象
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        //  指定查询条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        //--------------------------------------------------
+        builder.query(QueryBuilders.wildcardQuery("corpName", "海尔*"));
+        //------------------------------------------------------
+        request.source(builder);
+        // 执行
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 输出结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            System.out.println(hit.getSourceAsMap());
+        }
+    }
+
+    /**
+     * 根据range查询
+     */
+    @Test
+    public void rangeSearch() throws IOException {
+        // 1. 创建request
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        // 2. 指定查询内容
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        builder.query(QueryBuilders.rangeQuery("fee").lte(20).gte(10));
+        request.source(builder);
+        // 3. 查询，获取结果
+        SearchResponse search = client.search(request, RequestOptions.DEFAULT);
+        // 4. 打印结果
+        for (SearchHit hit : search.getHits().getHits()) {
+            System.out.println(hit.getSourceAsMap());
+        }
+    }
+
+
+    /**
+     * 根据regexp查询
+     */
+    @Test
+    public  void findByRegexp() throws IOException {
+        //  创建request对象
+        SearchRequest request = new SearchRequest(index);
+        request.types(type);
+        //  指定查询条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        //--------------------------------------------------
+        builder.query(QueryBuilders.regexpQuery("mobile","138[0-9]{8}"));
+        //------------------------------------------------------
+        request.source(builder);
+        // 执行
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        // 输出结果
+        for (SearchHit hit : response.getHits().getHits()) {
+            System.out.println(hit.getSourceAsMap());
+        }
+    }
+
+
+
+
+
 
 }

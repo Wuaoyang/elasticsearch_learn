@@ -16,8 +16,8 @@ import java.util.Date;
 class AidemJavaIndex {
 
     private Integer id;
-	private Integer age;
-	private Date birthday;
-	private String name;
+    private Integer age;
+    private Date birthday;
+    private String name;
 
 }
